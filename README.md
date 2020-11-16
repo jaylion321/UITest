@@ -1,7 +1,10 @@
 # UITest
-![image](picture or gif url)
 
 Readme EX : https://github.com/openatx/uiautomator2/blob/master/README.md
+
+#UI Design
+![image](https://github.com/jaylion321/UITest/blob/master/docIMG/UIDesign1.PNG)
+![image](https://github.com/jaylion321/UITest/blob/master/docIMG/UIDesign2.PNG)
 
 
 **[Development Diary](#development-diary)**
