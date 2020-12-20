@@ -12,7 +12,7 @@ import re
 import aiohttp
 import asyncio
 import pandas as pd 
-
+from StockGraph import StockGraph
 
 
 class CustomerText(QtWidgets.QPlainTextEdit):
@@ -32,8 +32,13 @@ class ToolItem(abc.ABC):
     def ret_widget(self):
         return NotImplemented
 
+    @abc.abstractmethod
+    def setStockInfo(self, stockInfo, dir):
+        return
+
+
 class ProxyPanel(ToolItem):
-    def __init__(self,dir=None,callback=None):    
+    def __init__(self,dir=None,stockInfo=None,callback=None):    
         self.ProxyWidget = None
         self.ProxyWidget = QtWidgets.QWidget()
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -47,6 +52,7 @@ class ProxyPanel(ToolItem):
         self.callback = callback
         self.getResult = None
         self.dir = dir
+        self.stockInfo = stockInfo
         sema = mp.Semaphore(1)
         self.pool = mp.Pool(initializer = init_child,initargs=(sema,))
 
@@ -119,6 +125,11 @@ class ProxyPanel(ToolItem):
 
         self.ProxyWidget.setLayout(self.ProxyWidget.layout)
 
+
+    def setStockInfo(self, stockInfo, dir):
+        self.stockInfo = stockInfo
+        self.dir = dir
+
     def file_selection(self):
         files = QtWidgets.QFileDialog.getOpenFileNames(None,
         "多檔案選擇",
@@ -143,6 +154,20 @@ class ProxyPanel(ToolItem):
          + " End to: "+  str(self.EndTime.date().toPyDate()) + '\r\n')
         # print(self.result.getPaintContext())
         stockNo = self.stockNoEdit.text()
+
+        stockItem = None
+        for key in self.stockInfo.keys(): 
+            for item in self.stockInfo[key]:
+                if (item.code == stockNo):
+                    stockItem = item
+                    print(stockItem)
+                    self.dir = "./"+stockItem.group+"/"+stockItem.code+"_"+stockItem.name+ "/"
+
+        if (stockItem == None):
+            print("The stock is not exist!")
+            return
+            
+
         if re.match(r'^([\d]+)$', stockNo) != None:
             # try:
             proxyProvider = None
@@ -152,38 +177,38 @@ class ProxyPanel(ToolItem):
             # print(self.ProxyList.toPlainText().split())
             proxy_list = []
 
-            '''judge if input is an valid ip'''
-            for i,proxyip in enumerate(Text):
-                regx_ip = re.match(r'^\d+\.\d+\.\d+\.\d+:\d+$',proxyip)
-                if( re.split  != None and [0<=int(x)<256 for x in re.split('[\.]',re.split(':', regx_ip.group(0))[0]) ].count(True)==4 ):
-                    proxy_list.append(proxyip)
+        #     '''judge if input is an valid ip'''
+        for i,proxyip in enumerate(Text):
+            regx_ip = re.match(r'^\d+\.\d+\.\d+\.\d+:\d+$',proxyip)
+            if( re.split  != None and [0<=int(x)<256 for x in re.split('[\.]',re.split(':', regx_ip.group(0))[0]) ].count(True)==4 ):
+                proxy_list.append(proxyip)
 
-            proxy_req_num = (len(proxy_list))
+        proxy_req_num = (len(proxy_list))
 
-            ''' Get data '''
-            if (proxy_req_num !=0):
-                ''' with proxy'''
-                proxyProvider = proxy.RoundRobinProxiesProvider(proxy_list)
-                if (proxy_req_num > 3):
-                    proxy_req_num = 3
-                
-                
-                self.pool.apply_async(async_task, args=(stock,2020,8,proxyProvider,proxy_req_num),callback=self.async_finsh) 
-                # 
-                # tasks = asyncio.run( stock.async_fetch_from(2020, 3,proxyProvider,proxy_req_num))
-            else:
-                ''' without proxy'''
-                
-                i = 0
-                while 1:
-                    date = self.StartTime.date().addMonths(i)
-                    year = date.year()
-                    month = date.month()
-                    self.pool.apply_async(sync_task, args=(stock,year,month,True,),callback=self.finish) 
-                    if (self.EndTime.date().year() ==  year and self.EndTime.date().month() == month) :
-                        break
-                    i += 1
-     
+        ''' Get data '''
+        if (proxy_req_num !=0):
+            ''' with proxy'''
+            proxyProvider = proxy.RoundRobinProxiesProvider(proxy_list)
+            if (proxy_req_num > 3):
+                proxy_req_num = 3
+            
+            
+            self.pool.apply_async(async_task, args=(stock,2020,8,proxyProvider,proxy_req_num),callback=self.async_finsh) 
+            # 
+            # tasks = asyncio.run( stock.async_fetch_from(2020, 3,proxyProvider,proxy_req_num))
+        else:
+            ''' without proxy'''
+            
+            i = 0
+            while 1:
+                date = self.StartTime.date().addMonths(i)
+                year = date.year()
+                month = date.month()
+                self.pool.apply_async(sync_task, args=(stock,year,month,True,),callback=self.finish) 
+                if (self.EndTime.date().year() ==  year and self.EndTime.date().month() == month) :
+                    break
+                i += 1
+    
 
     def finish(self,result):
         fetch_data = result
@@ -191,8 +216,7 @@ class ProxyPanel(ToolItem):
         self.result.processUpdateSIG.emit(fetch_data['stkno'] ,str(fetch_data['date']))
         if (self.dir != None):
             DF = pd.DataFrame(fetch_data['data'],columns=fetch_data['fields'])
-            DF.to_csv("./"+ fetch_data['stkno']+'_price_'+str(fetch_data['date'])+'.csv', encoding='utf_8_sig')
-
+            DF.to_csv(self.dir + fetch_data['stkno']+'_price_'+str(fetch_data['date'])+'.csv', encoding='utf_8_sig')
 
 
     def async_finsh(self,result):
@@ -216,7 +240,7 @@ def init_child(_sema):
     sema = _sema
 
 class BasicPanel(ToolItem):
-    def __init__(self):    
+    def __init__(self,container=None,filedir=None,stockInfo=None):    
         self.BasicWidget = None
         self.BasicWidget = QtWidgets.QWidget()
         # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -225,8 +249,11 @@ class BasicPanel(ToolItem):
         # self.BasicWidget.setFocusPolicy(QtCore.Qt.NoFocus)
         # self.BasicWidget.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         self.BasicWidget.setObjectName("Basic")  
-        
+        self.Tabcontainer = container
+        self.dir = filedir
         self.construct_widget()
+        self.stockInfo = stockInfo
+        self.StockGraphList = []
 
     def construct_widget(self):      
         self.BasicWidget.layout = QtWidgets.QGridLayout()
@@ -234,35 +261,42 @@ class BasicPanel(ToolItem):
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.BasicWidget.layout.addItem(spacerItem, 3, 2, 1, 1)
 
-        self.StarttimeEdit = QtWidgets.QLineEdit()
+        self.StockNoEdit = QtWidgets.QLineEdit()
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.StarttimeEdit.sizePolicy().hasHeightForWidth())
-        self.StarttimeEdit.setSizePolicy(sizePolicy)
-        self.StarttimeEdit.setObjectName("StarttimeEdit")
-        self.BasicWidget.layout.addWidget(self.StarttimeEdit, 0, 0, 1, 1)
+        sizePolicy.setHeightForWidth(self.StockNoEdit.sizePolicy().hasHeightForWidth())
+        self.StockNoEdit.setSizePolicy(sizePolicy)
+        self.StockNoEdit.setObjectName("StarttimeEdit")
+        self.BasicWidget.layout.addWidget(self.StockNoEdit, 0, 0, 1, 1)
 
         self.StartTime = QtWidgets.QDateEdit(calendarPopup=True)
         self.StartTime.setObjectName("StartTime")
         self.StartTime.setDateTime(QtCore.QDateTime.currentDateTime().addYears(-3))
-        self.BasicWidget.layout.addWidget(self.StartTime, 0, 2, 1, 1)
+        self.BasicWidget.layout.addWidget(self.StartTime, 0, 1, 1, 1)
 
-        self.radioButton = QtWidgets.QRadioButton("Max")
+        self.fileButton = QtWidgets.QPushButton("Get")
+        self.fileButton.setObjectName("fileButton")
+        self.BasicWidget.layout.addWidget(self.fileButton, 0, 2, 1, 1)
+        self.fileButton.clicked.connect(self.click_read_history)
+
+        self.radioButton = QtWidgets.QCheckBox("Max")
         self.radioButton.setObjectName("radioButton")
         self.BasicWidget.layout.addWidget(self.radioButton, 2, 0, 1, 1)
 
-        self.radioButton_2 = QtWidgets.QRadioButton("Min")
+        self.radioButton_2 = QtWidgets.QCheckBox("Min")
         self.radioButton_2.setObjectName("radioButton_2")
         self.BasicWidget.layout.addWidget(self.radioButton_2, 2, 1, 1, 1)
 
-        self.radioButton_3 = QtWidgets.QRadioButton("Close")
+        self.radioButton_3 = QtWidgets.QCheckBox("Close")
         self.radioButton_3.setObjectName("radioButton_3")
         self.BasicWidget.layout.addWidget(self.radioButton_3, 2, 2, 1, 1)
 
         self.BasicWidget.setLayout(self.BasicWidget.layout)
 
-        self.set_click_event(self)
+    def setStockInfo(self, stockInfo, dir):
+        self.stockInfo = stockInfo
+        self.dir = dir
 
     @staticmethod
     def set_click_event(self):
@@ -273,6 +307,60 @@ class BasicPanel(ToolItem):
     def state_changed():
         print("xx")
 
+
+    def click_read_history(self):
+        stockTab1 = QtWidgets.QWidget()
+        stockTab1.setObjectName("stockTab1")
+        
+
+        stockNo = self.StockNoEdit.text()
+        
+        ''' check input and get relative dir'''
+        stockItem = None
+        for key in self.stockInfo.keys(): 
+            for item in self.stockInfo[key]:
+                if (item.code == stockNo):
+                    stockItem = item
+                    print(stockItem)
+                    self.dir = "./"+stockItem.group+"/"+stockItem.code+"_"+stockItem.name+ "/"
+
+        if (stockItem == None):
+            print("The stock is not exist!")
+            return
+
+        '''1. Get files from Dir 
+           2. Collect all data as a big dataFram by Panda'''
+        file_list = []
+        for file in os.listdir(self.dir):
+            if 'price' in file:
+                file_list.append( pd.read_csv(self.dir + file))
+        
+
+        '''Data processing '''
+        df_price = pd.concat(file_list,axis=0)
+        graphYdict = {}
+        graphYdict['close'] = df_price['收盤價'].values.tolist()
+        graphYdict['high'] = df_price['最高價'].values.tolist()
+        graphYdict['low'] = df_price['最低價'].values.tolist()
+
+        graphXdata = []
+        for date in df_price['日期'].values.tolist():
+            date = date.split('/',1)
+            ''' To Common Era'''
+            graphXdata.append( str(int(date[0])+1911)+'/'+date[1])
+
+
+        '''Put data to TAB '''
+        # #set Tab layout
+        stockTab1.layout = QtWidgets.QHBoxLayout()
+        stockGraph = StockGraph(numofplot = 3, name= ["close","high","low"])
+        #Create a graph widget
+        stockTab1.layout.addWidget(stockGraph.ret_GraphicsLayoutWidget())
+        stockTab1.setLayout(stockTab1.layout) 
+        stockGraph.setData(graphXdata, graphYdict)
+        self.StockGraphList.append(stockGraph)
+        '''add Tab'''
+        self.Tabcontainer.addTab(stockTab1, stockNo)
 
     def ret_widget(self):
         return self.BasicWidget

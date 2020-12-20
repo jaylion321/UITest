@@ -129,9 +129,10 @@ class StockGraph():
         self.dataY = dataYDict
         ticks=dict(enumerate(dataX))
 
+        '''set X-value'''
         self.date_axis.setTicks([list(ticks.items())[::120], list(ticks.items())[::1]])
         
-
+        '''set Y-value and Plot'''
         for dataY,PlotDataItem in zip( dataYDict.values(),self.PlotDataItemList):
             PlotDataItem.setData(y=dataY)
         
@@ -139,6 +140,7 @@ class StockGraph():
         #self.p1.getAxis('bottom').showLabel(False)
 
         # self.date_axis.linkToView(self.p1.vb)
+        '''set overview data'''
         self.p2.plot(x=list(ticks.keys()), y=dataYDict[self.name[0]], pen="w") 
         #set data view range
         self.p2.vb.setLimits(xMin=0, xMax=len(dataYDict[self.name[0]]))

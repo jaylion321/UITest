@@ -12,7 +12,7 @@ from pyqtgraph import GraphicsLayoutWidget
 import numpy as np
 import sys
 from GraphLayoutExample import Graphexample
-from StockGraph import StockGraph
+ 
 from ProxyUI import ProxyPanel,BasicPanel
 from twstock import Stock
 
@@ -41,6 +41,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.Container = QtWidgets.QHBoxLayout()
         self.Container.setObjectName("Container")
 
+        '''Create Tab widget and settig'''
+        self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
+        self.tabWidget.setObjectName("tabWidget")
+        self.tabWidget.setTabsClosable(True)
+        self.tabWidget.tabCloseRequested.connect(lambda index: self.tabWidget.removeTab(index))
 
         #We fix the width of QToolBox, so that the width of Tabwidget will be expanded when windows is enlarged
         self.Setting = QtWidgets.QToolBox(self.centralwidget)
@@ -51,43 +56,41 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         # self.Setting.setMinimumSize(QtCore.QSize(300, 520))
         self.Setting.setObjectName("Setting")
 
-        self.ProxyPanel = ProxyPanel('./')
+        self.ProxyPanel = ProxyPanel()
         self.Setting.addItem(self.ProxyPanel.ret_widget(), "Proxy")
         
-        self.BasicPanel = BasicPanel()
+        self.BasicPanel = BasicPanel(self.tabWidget)
         self.Setting.addItem(self.BasicPanel.ret_widget(), "Basic")
 
         
 
-        self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
-        self.tabWidget.setObjectName("tabWidget")
 
-        #first Tab
-        self.stockTab1 = QtWidgets.QWidget()
-        self.stockTab1.setObjectName("stockTab1")
-        self.tabWidget.addTab(self.stockTab1, "")
+        # #first Tab
+        # self.stockTab1 = QtWidgets.QWidget()
+        # self.stockTab1.setObjectName("stockTab1")
+        # self.tabWidget.addTab(self.stockTab1, "")
 
-        #set Tab layout
-        self.stockTab1.layout = QtWidgets.QHBoxLayout()
-        self.StockGraph = StockGraph(numofplot = 3, name= ["close","high","low"])
-        #Create a graph widget
-        self.stockTab1.layout.addWidget(self.StockGraph.ret_GraphicsLayoutWidget())
-        self.stockTab1.setLayout(self.stockTab1.layout)
+        # #set Tab layout
+        # self.stockTab1.layout = QtWidgets.QHBoxLayout()
+        # self.StockGraph = StockGraph(numofplot = 3, name= ["close","high","low"])
+        # #Create a graph widget
+        # self.stockTab1.layout.addWidget(self.StockGraph.ret_GraphicsLayoutWidget())
+        # self.stockTab1.setLayout(self.stockTab1.layout)
 
 
-        #second Tab
-        self.stockTab2 = QtWidgets.QWidget()
-        self.stockTab2.setObjectName("tab_4")
-        #set Tab layout
-        self.stockTab2.layout = QtWidgets.QHBoxLayout()
-        self.Graph = Graphexample()
+        # #second Tab
+        # self.stockTab2 = QtWidgets.QWidget()
+        # self.stockTab2.setObjectName("tab_4")
+        # #set Tab layout
+        # self.stockTab2.layout = QtWidgets.QHBoxLayout()
+        # self.Graph = Graphexample()
 
-        #layout add to TAB2
-        self.stockTab2.layout.addWidget(self.Graph.ret_GraphicsLayoutWidget())
-        self.stockTab2.setLayout(self.stockTab2.layout)
+        # #layout add to TAB2
+        # self.stockTab2.layout.addWidget(self.Graph.ret_GraphicsLayoutWidget())
+        # self.stockTab2.setLayout(self.stockTab2.layout)
 
 
-        self.tabWidget.addTab(self.stockTab2, "")
+        # self.tabWidget.addTab(self.stockTab2, "")
         self.Container.addWidget(self.tabWidget)
         self.Container.addWidget(self.Setting)
         self.mainBox.addLayout(self.Container)
@@ -96,6 +99,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+
 
     def addGraphPlot(self):
         graph = GraphicsLayoutWidget(self.stockTab2)
@@ -108,12 +113,17 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def SetGraphData(self,dataXList,dataYList):
         self.StockGraph.setData(dataXList,dataYList )
 
+    def setStockInfo(self, stockInfo, dir):
+        self.stockInfo = stockInfo
+        self.dir = dir
+        self.ProxyPanel.setStockInfo( self.stockInfo, self.dir)
+        self.BasicPanel.setStockInfo( self.stockInfo, self.dir)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.stockTab1), _translate("MainWindow", "Tab 1"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.stockTab2), _translate("MainWindow", "Tab 2"))
+        # self.tabWidget.setTabText(self.tabWidget.indexOf(self.stockTab1), _translate("MainWindow", "Tab 1"))
+        # self.tabWidget.setTabText(self.tabWidget.indexOf(self.stockTab2), _translate("MainWindow", "Tab 2"))
         # self.Setting.setItemText(self.Setting.indexOf(self.Proxy), _translate("MainWindow", "Proxy"))
         # self.pushButton.setText(_translate("MainWindow", "Test"))
         # self.Setting.setItemText(self.Setting.indexOf(self.Proxy), _translate("MainWindow", "Proxy"))
