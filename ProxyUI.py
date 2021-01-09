@@ -253,7 +253,8 @@ class BasicPanel(ToolItem):
         self.dir = filedir
         self.construct_widget()
         self.stockInfo = stockInfo
-        self.StockGraphList = []
+        self._stockList = None
+        self.stockGraph = None
 
     def construct_widget(self):      
         self.BasicWidget.layout = QtWidgets.QGridLayout()
@@ -280,23 +281,12 @@ class BasicPanel(ToolItem):
         self.BasicWidget.layout.addWidget(self.fileButton, 0, 2, 1, 1)
         self.fileButton.clicked.connect(self.click_read_history)
 
-        self.radioButton = QtWidgets.QCheckBox("Max")
-        self.radioButton.setObjectName("radioButton")
-        self.BasicWidget.layout.addWidget(self.radioButton, 2, 0, 1, 1)
-
-        self.radioButton_2 = QtWidgets.QCheckBox("Min")
-        self.radioButton_2.setObjectName("radioButton_2")
-        self.BasicWidget.layout.addWidget(self.radioButton_2, 2, 1, 1, 1)
-
-        self.radioButton_3 = QtWidgets.QCheckBox("Close")
-        self.radioButton_3.setObjectName("radioButton_3")
-        self.BasicWidget.layout.addWidget(self.radioButton_3, 2, 2, 1, 1)
-
         self.BasicWidget.setLayout(self.BasicWidget.layout)
 
     def setStockInfo(self, stockInfo, dir):
         self.stockInfo = stockInfo
         self.dir = dir
+
 
     @staticmethod
     def set_click_event(self):
@@ -351,16 +341,24 @@ class BasicPanel(ToolItem):
 
 
         '''Put data to TAB '''
-        # #set Tab layout
+        # Set layout
         stockTab1.layout = QtWidgets.QHBoxLayout()
-        stockGraph = StockGraph(numofplot = 3, name= ["close","high","low"])
-        #Create a graph widget
-        stockTab1.layout.addWidget(stockGraph.ret_GraphicsLayoutWidget())
+
+        #Get a graph widget
+        self.stockGraph = self._stockList.create()
+        if self.stockGraph == None:
+            return
+        self.stockGraph.stockInfo = stockItem
+        stockTab1.layout.addWidget(self.stockGraph.ret_GraphicsLayoutWidget())
         stockTab1.setLayout(stockTab1.layout) 
-        stockGraph.setData(graphXdata, graphYdict)
-        self.StockGraphList.append(stockGraph)
+        self.stockGraph.setData(graphXdata, graphYdict)
+
         '''add Tab'''
         self.Tabcontainer.addTab(stockTab1, stockNo)
+    
+    def append_graphList(self,stockList):
+        self._stockList = stockList
+
 
     def ret_widget(self):
         return self.BasicWidget

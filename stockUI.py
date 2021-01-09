@@ -14,7 +14,9 @@ import sys
 from GraphLayoutExample import Graphexample
  
 from ProxyUI import ProxyPanel,BasicPanel
+from twstock.listctl import StockList
 from twstock import Stock
+from StockGraph import StockGraph
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -25,6 +27,15 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1103, 509)
+
+        # Create StockGraph and _stockList object
+        self.shadowList = []
+        self.usedList = []
+        for i in range(0,10):
+            stockGraph = StockGraph(numofplot = 3, name= ["close","high","low"])
+            self.shadowList.append(stockGraph)
+        self._stockList = StockList(self.shadowList, self.usedList)
+
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
@@ -45,9 +56,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.tabWidget.setObjectName("tabWidget")
         self.tabWidget.setTabsClosable(True)
-        self.tabWidget.tabCloseRequested.connect(lambda index: self.tabWidget.removeTab(index))
+        self.tabWidget.tabCloseRequested.connect(self.tabRemove)
+        # self.tabWidget.tabCloseRequested.connect(lambda index: self.tabWidget.removeTab(index))
 
-        #We fix the width of QToolBox, so that the width of Tabwidget will be expanded when windows is enlarged
+
+        #We fix the width of QToolBox, so that the width of Tabwidget will be not expanded when windows is enlarged
         self.Setting = QtWidgets.QToolBox(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -61,8 +74,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         
         self.BasicPanel = BasicPanel(self.tabWidget)
         self.Setting.addItem(self.BasicPanel.ret_widget(), "Basic")
-
-        
+        self.BasicPanel.append_graphList(self._stockList)
 
 
         # #first Tab
@@ -131,7 +143,12 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         # self.From.setText(_translate("MainWindow", "From"))
         # self.Setting.setItemText(self.Setting.indexOf(self.Basic), _translate("MainWindow", "Basic"))
 
-
+    def tabRemove(self,index):
+        print ("Close tab, index = %s" % index)
+        self.tabWidget.removeTab(index)
+        stockgraph = self._stockList.remove(index)
+        
+        
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
     window = Ui_MainWindow()

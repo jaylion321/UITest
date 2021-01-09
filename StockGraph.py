@@ -10,8 +10,9 @@ class TimeAxisItem(pg.AxisItem):
         # self.setLabel(text='Time', units=None)
 
 class StockGraph():
-    def __init__(self,numofplot = 2, name= None):
-
+    def __init__(self,numofplot = 2, name= None,stockInfo = None):
+        self.gridContainer = None
+        self.construct_gridlayout()
         if numofplot < 0:
             print("numofplot must be greater or equal than 0")
             return -1
@@ -23,7 +24,7 @@ class StockGraph():
         self.dataX = None
         self.dataY = None
         self.name = name
-        
+        self.stockInfo = stockInfo
         self.graph = GraphicsLayoutWidget()
         self.graph.setObjectName("stock UI")
         self.label = pg.LabelItem(justify='right')
@@ -49,9 +50,6 @@ class StockGraph():
 
         self.p1.setAutoVisible(y=True)
 
-        self.data1 = [np.NAN for i in range(0,1200) ] 
-        self.data2 = [np.NAN for i in range(0,1200) ] 
-
         #cross hair
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
@@ -64,8 +62,61 @@ class StockGraph():
         #Set PlotDataItem
         self.numofplot = numofplot
         self.name = name
-        self.colorStyle = ['r','g','b']
+        self.colorStyle = ['r','g','b','y','w','o']
         self.PlotDataItemList = self.setPlot()
+        self.p2_plot = self.p2.plot(name='overview')
+
+        #set gridContainer layout
+        self.gridContainer.layout.addWidget(self.graph, 0, 0, 10, 1)
+        self.gridContainer.setLayout(self.gridContainer.layout)
+
+        self.calName = ['10avg','30avg','90avg']
+        self.CalPlotDataItemList = self.setCalPlot()
+
+        #consttuct graph control Panel
+        self.construct_controlPanel()
+        
+
+    def construct_gridlayout(self):
+        self.gridContainer = QtWidgets.QWidget()
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHeightForWidth(self.gridContainer.sizePolicy().hasHeightForWidth())
+        self.gridContainer.setSizePolicy(sizePolicy)
+        self.gridContainer.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.gridContainer.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.gridContainer.setObjectName("Graphgrid")  
+        self.gridContainer.layout = QtWidgets.QGridLayout()
+        self.gridContainer.setStyleSheet("background-color:black;") 
+
+    def construct_controlPanel(self):
+        self.maxRadioButton = QtWidgets.QCheckBox("Max")
+        self.maxRadioButton.setObjectName("maxRadioButton")
+        self.gridContainer.layout.addWidget(self.maxRadioButton, 0, 1, 1, 1)
+        self.maxRadioButton.click()
+        self.maxRadioButton.setStyleSheet("color: rgb(0, 255, 0);")
+        self.maxRadioButton.toggled.connect(lambda:self.toggleFunc(self.maxRadioButton,'high'))
+
+        self.minRadioButton = QtWidgets.QCheckBox("Min")
+        self.minRadioButton.setObjectName("minRadioButton")
+        self.gridContainer.layout.addWidget(self.minRadioButton, 1, 1, 1, 1)
+        self.minRadioButton.click()
+        self.minRadioButton.setStyleSheet("color: rgb(255, 255, 255);")
+        self.minRadioButton.toggled.connect(lambda:self.toggleFunc(self.minRadioButton,'low'))
+
+        self.closeRadioButton = QtWidgets.QCheckBox("Close")
+        self.closeRadioButton.setObjectName("closeRadioButton")
+        self.gridContainer.layout.addWidget(self.closeRadioButton, 2, 1, 1, 1)
+        self.closeRadioButton.click()
+        self.closeRadioButton.setStyleSheet("color: rgb(255,0,0);")
+        self.closeRadioButton.toggled.connect(lambda:self.toggleFunc(self.closeRadioButton,'close'))    
+
+        self.avg10RadioButton = QtWidgets.QCheckBox("10 AVG")
+        self.avg10RadioButton.setObjectName("avg10RadioButton")
+        self.gridContainer.layout.addWidget(self.avg10RadioButton, 3, 1, 1, 1)
+        self.avg10RadioButton.click()
+        self.avg10RadioButton.setStyleSheet("color: rgb(255,255,0);")
+        self.avg10RadioButton.toggled.connect(lambda:self.toggleFunc(self.avg10RadioButton,'10avg'))  
+
 
     def update_p1_tick(self,minX, maxX): 
         if self.dataX != None:
@@ -109,7 +160,7 @@ class StockGraph():
             
             if index > 0 and index < len(self.dataX):
                 idx = int(mousePoint.x())
-                self.label.setText("<span style='font-size: 12pt'>x=%s,   <span style='color: red'>收盤價=%0.1f</span>,   <span style='color: green'>最高價=%0.1f</span>  <span style='color: blue'>最低價=%0.1f</span>" % (self.dataX[idx], self.dataY['close'][idx],  self.dataY['high'][idx],  self.dataY['low'][idx]))
+                self.label.setText("<span style='font-size: 12pt'>x=%s,   <span style='color: red'>收盤價=%0.1f</span>,   <span style='color: green'>最高價=%0.1f</span>  <span style='color: white'>最低價=%0.1f</span>" % (self.dataX[idx], self.dataY['close'][idx],  self.dataY['high'][idx],  self.dataY['low'][idx]))
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
     def setYRange(self,plotitem):
@@ -119,8 +170,14 @@ class StockGraph():
     def setPlot(self):
         PlotDataItemList = []
         for i in range(0,self.numofplot):
-            PlotDataItemList.append( self.p1.plot(pen=self.colorStyle[i],name=self.name[i]))
+               PlotDataItemList.append( self.p1.plot(pen=self.colorStyle[i],name=self.name[i]))
         return PlotDataItemList
+
+    def setCalPlot(self):
+        CalPlotDataItemList = []
+        for i in range(0,3):
+               CalPlotDataItemList.append( self.p1.plot(pen=self.colorStyle[i+3],name=self.calName[i]))
+        return CalPlotDataItemList
 
     def setData(self,dataX,dataYDict):
         #create numpy arrays
@@ -135,13 +192,14 @@ class StockGraph():
         '''set Y-value and Plot'''
         for dataY,PlotDataItem in zip( dataYDict.values(),self.PlotDataItemList):
             PlotDataItem.setData(y=dataY)
+            
         
         #do not show label
         #self.p1.getAxis('bottom').showLabel(False)
 
         # self.date_axis.linkToView(self.p1.vb)
         '''set overview data'''
-        self.p2.plot(x=list(ticks.keys()), y=dataYDict[self.name[0]], pen="w") 
+        self.p2_plot.setData(x=list(ticks.keys()), y=dataYDict[self.name[0]], pen="w") 
         #set data view range
         self.p2.vb.setLimits(xMin=0, xMax=len(dataYDict[self.name[0]]))
         self.region.sigRegionChanged.connect(self.update)
@@ -151,11 +209,43 @@ class StockGraph():
         # print (self.p1.vb)
         # self.p1.sigRangeChanged.connect(self.updateRegion)
 
-        self.region.setRegion([100, 200])
+        self.region.setRegion([0, len(dataYDict[self.name[0]])])
 
+        #calculte Data
+        avg10 = self.moving_average(dataYDict[self.name[0]], 10)
+        self.CalPlotDataItemList[0].setData(y=avg10)
+       
+
+        #make Max and Min are invisiable by default
+        self.minRadioButton.setChecked(False)
+        self.maxRadioButton.setChecked(False)
+
+    def toggleFunc(self,rdb,name):
+        plotItem = None
+        for plot in self.PlotDataItemList:
+            if plot.name() == name:
+                plotItem = plot
+        for plot in self.CalPlotDataItemList:
+            if plot.name() == name:
+                plotItem = plot
+        if rdb.isChecked():
+            self.p1.addItem(plotItem)
+        else:
+            self.p1.removeItem(plotItem)
 
     def ret_GraphicsLayoutWidget(self):
-        return self.graph
+        return self.gridContainer
 
+    @staticmethod
+    def removeEvent(self):
+        return
 
-
+    def moving_average(self, data, days):
+        result = []
+        NanList = [np.nan for i in range(0,days - 1)]
+        data = data[:]
+        for _ in range(len(data) - days + 1):
+            result.append(round(sum(data[-days:]) / days, 2))
+            data.pop()
+        result = result[::-1]
+        return NanList + result
