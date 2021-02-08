@@ -126,9 +126,9 @@ class Dialog(QtGui.QDialog):
         self.TableDAT = self.TableDAT.round(2)
         #Temporary, we delete 1st level colums, for showing columns in TableView 
         self.TableDAT.columns = self.TableDAT.columns.droplevel(0)
+        print(self.TableDAT)
         self.model = PandaModel.DataFrameModel(self.TableDAT)
         self.tableView.setModel(self.model)
-        self.tableView.setColumnHidden(0, True)
 
         #Resize cell size to 
         self.tableView.resizeColumnsToContents()
