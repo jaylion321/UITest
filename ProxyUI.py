@@ -349,6 +349,7 @@ class BasicPanel(ToolItem):
         if self.stockGraph == None:
             return
         self.stockGraph.stockInfo = stockItem
+        self.stockGraph.setDir("./"+stockItem.group+"/")
         stockTab1.layout.addWidget(self.stockGraph.ret_GraphicsLayoutWidget())
         stockTab1.setLayout(stockTab1.layout) 
         self.stockGraph.setData(graphXdata, graphYdict)

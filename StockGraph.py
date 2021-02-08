@@ -3,6 +3,7 @@ from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 from pyqtgraph.Point import Point
 from pyqtgraph import GraphicsLayoutWidget
 import numpy as np
+from popAnalysis import Dialog
 
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -12,6 +13,7 @@ class TimeAxisItem(pg.AxisItem):
 class StockGraph():
     def __init__(self,numofplot = 2, name= None,stockInfo = None):
         self.gridContainer = None
+        self.dir = None
         self.construct_gridlayout()
         if numofplot < 0:
             print("numofplot must be greater or equal than 0")
@@ -117,6 +119,11 @@ class StockGraph():
         self.avg10RadioButton.setStyleSheet("color: rgb(255,255,0);")
         self.avg10RadioButton.toggled.connect(lambda:self.toggleFunc(self.avg10RadioButton,'10avg'))  
 
+        self.GetButton = QtWidgets.QPushButton("Advance")
+        self.GetButton.setObjectName("Advance")
+        self.GetButton.clicked.connect(self.Analysis)
+        self.GetButton.setStyleSheet("color: rgb(255, 255, 255);")
+        self.gridContainer.layout.addWidget(self.GetButton, 4, 1, 1, 1)
 
     def update_p1_tick(self,minX, maxX): 
         if self.dataX != None:
@@ -232,6 +239,13 @@ class StockGraph():
             self.p1.addItem(plotItem)
         else:
             self.p1.removeItem(plotItem)
+
+    def setDir(self,dir):
+        self.dir = dir
+
+    def Analysis(self):
+        d = Dialog(self.dataY, self.dataX, self.dir,self.stockInfo)
+        d.exec()
 
     def ret_GraphicsLayoutWidget(self):
         return self.gridContainer
