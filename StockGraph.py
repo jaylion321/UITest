@@ -64,7 +64,7 @@ class StockGraph():
         #Set PlotDataItem
         self.numofplot = numofplot
         self.name = name
-        self.colorStyle = ['r','g','b','y','w','o']
+        self.colorStyle = ['r','g','b','y','w','r']
         self.PlotDataItemList = self.setPlot()
         self.p2_plot = self.p2.plot(name='overview')
 
@@ -125,18 +125,18 @@ class StockGraph():
         self.GetButton.setStyleSheet("color: rgb(255, 255, 255);")
         self.gridContainer.layout.addWidget(self.GetButton, 4, 1, 1, 1)
 
-    def update_p1_tick(self,minX, maxX): 
+    def update_p1_tick(self,minX, maxX, interval =60): 
         if self.dataX != None:
 
             #0 - minX
-            lowNum = int(minX/60)
+            lowNum = int(minX/interval)
             #maxX - length
-            HighNum = int( (len(self.dataX) -1 - maxX)/60)
+            HighNum = int( (len(self.dataX) -1 - maxX)/interval)
 
-            plotPoint = [(minX - 60*i) for i in range(1,lowNum+1) ]  + [minX] 
-            if (maxX - minX) > 60 :
+            plotPoint = [(minX - interval*i) for i in range(1,lowNum+1) ]  + [minX] 
+            if (maxX - minX) > interval :
                 plotPoint.append( int((maxX+minX)/2) )
-            plotPoint = plotPoint + [maxX] + [(maxX + 60*i) for i in range(1,HighNum+1) ]
+            plotPoint = plotPoint + [maxX] + [(maxX + interval*i) for i in range(1,HighNum+1) ]
 
             p1_tick = ['' for i in range(0, len(self.dataX))]
             p1_tick = dict(enumerate(p1_tick))
@@ -192,9 +192,12 @@ class StockGraph():
         self.dataX = dataX
         self.dataY = dataYDict
         ticks=dict(enumerate(dataX))
+        
 
-        '''set X-value'''
-        self.date_axis.setTicks([list(ticks.items())[::120], list(ticks.items())[::1]])
+        '''set X-value of P2 and P1'''
+        self.date_axis.setTicks([list(ticks.items())[::160], list(ticks.items())[::1]])
+        self.date_axis1.setTicks([list(ticks.items())[::160], list(ticks.items())[::1]])
+        
         
         '''set Y-value and Plot'''
         for dataY,PlotDataItem in zip( dataYDict.values(),self.PlotDataItemList):

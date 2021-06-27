@@ -10,10 +10,10 @@ from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 from pyqtgraph.Point import Point
 from pyqtgraph import GraphicsLayoutWidget
 import numpy as np
-import sys
+import sys,os
 from GraphLayoutExample import Graphexample
  
-from ProxyUI import ProxyPanel,BasicPanel
+from ProxyUI import ProxyPanel,BasicPanel,OverviewPanel,RevenuePanel
 from twstock.listctl import StockList
 from twstock import Stock
 from StockGraph import StockGraph
@@ -57,6 +57,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.tabWidget.setObjectName("tabWidget")
         self.tabWidget.setTabsClosable(True)
         self.tabWidget.tabCloseRequested.connect(self.tabRemove)
+        self.tabWidget.tabCloseRequested.connect(self.tabRemove)
         # self.tabWidget.tabCloseRequested.connect(lambda index: self.tabWidget.removeTab(index))
 
 
@@ -76,7 +77,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.Setting.addItem(self.BasicPanel.ret_widget(), "Basic")
         self.BasicPanel.append_graphList(self._stockList)
 
-
+        self.OverviewPanel = OverviewPanel(self.tabWidget)
+        self.Setting.addItem(self.OverviewPanel.ret_widget(), "Overview")
+        
+        self.RevenuePanel = RevenuePanel(self.tabWidget)
+        self.Setting.addItem(self.RevenuePanel.ret_widget(), "Revenue")
         # #first Tab
         # self.stockTab1 = QtWidgets.QWidget()
         # self.stockTab1.setObjectName("stockTab1")
@@ -130,6 +135,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.dir = dir
         self.ProxyPanel.setStockInfo( self.stockInfo, self.dir)
         self.BasicPanel.setStockInfo( self.stockInfo, self.dir)
+        self.OverviewPanel.setStockInfo( self.stockInfo, self.dir)
+        self.RevenuePanel.setStockInfo( self.stockInfo, self.dir)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

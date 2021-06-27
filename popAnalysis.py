@@ -3,9 +3,12 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore, QtWidgets 
 from pyqtgraph import GraphicsLayoutWidget
 import numpy as np
+import pandas as pd 
 import functionAnalysis
 import PandaModel
 from Parser.parser import Concat_Table_With_IDX
+from functools import partial
+
 
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -27,6 +30,7 @@ class Dialog(QtGui.QDialog):
         self.gridContainer.setObjectName("Graphgrid")  
         self.gridContainer.layout = QtWidgets.QGridLayout()
         self.dir = dir
+
         self.stockInfo = stockInfo
 
 
@@ -46,13 +50,12 @@ class Dialog(QtGui.QDialog):
         self.gridContainer.layout.addWidget(self.graph, 0, 0, 10, 10)
 
         self.TableDAT = Concat_Table_With_IDX(self.dir,self.stockInfo.code)
+        print(self.dir,self.stockInfo.code)
         self.initUI()
         self.proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
         
 
     def initUI(self):
-
-
         #check box
         self.AVGRadioButton = QtWidgets.QCheckBox("AVG")
         self.AVGRadioButton.setObjectName("avgRadioButton")
@@ -126,7 +129,6 @@ class Dialog(QtGui.QDialog):
         self.TableDAT = self.TableDAT.round(2)
         #Temporary, we delete 1st level colums, for showing columns in TableView 
         self.TableDAT.columns = self.TableDAT.columns.droplevel(0)
-        print(self.TableDAT)
         self.model = PandaModel.DataFrameModel(self.TableDAT)
         self.tableView.setModel(self.model)
 
@@ -245,3 +247,101 @@ class Dialog(QtGui.QDialog):
     #         data.pop()
     #     result = result[::-1]
     #     return NanList + result
+
+
+
+class ShowTableDialog(QtGui.QDialog):
+
+    def __init__(self,PerformanceTbl=None,revTbl=None):
+        super(ShowTableDialog, self).__init__()
+        self.resize(1000,500)
+        self.gridContainer = None
+        self.gridContainer = QtWidgets.QWidget(self)
+        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        # sizePolicy.setHorizontalStretch(1)
+        # sizePolicy.setHorizontalStretch(0)
+        # sizePolicy.setVerticalStretch(0)
+        # sizePolicy.setHeightForWidth(self.gridContainer.sizePolicy().hasHeightForWidth())
+        # self.gridContainer.setSizePolicy(sizePolicy)
+        self.gridContainer.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.gridContainer.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+        self.gridContainer.setObjectName("Graphgrid")  
+        self.gridContainer.layout = QtWidgets.QVBoxLayout(self)
+        # self.gridContainer.layout.setContentsMargins( 0, 0, 0, 0 )
+
+        self.PerformaceTableDAT = PerformanceTbl
+        self.RevTableDAT = revTbl
+        self.initUI()
+
+    def initUI(self):
+        self.tabWidgetRev = QtWidgets.QTabWidget(self)
+        self.tabWidgetRev.setObjectName("Rev")
+        self.gridContainer.layout.addWidget(self.tabWidgetRev) 
+
+        self.tabWidgetPerformance = QtWidgets.QTabWidget(self)
+        self.tabWidgetPerformance.setObjectName("Performace")
+        self.gridContainer.layout.addWidget(self.tabWidgetPerformance) 
+        
+
+        # self.tableView.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
+        # self.tableView.setMaximumSize(self.tableView.getQTableWidgetSize())
+        # self.tableView.setMinimumSize(self.tableView.getQTableWidgetSize())
+        # self.tableView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        if self.PerformaceTableDAT.__class__.__name__ == 'DataFrame':
+            # rename the duplicated name of columns
+            newLable = []
+            MultiLevelcolumns = self.PerformaceTableDAT.columns
+            for level1,level2 in MultiLevelcolumns:
+                newLable.append(level1+'_'+level2)
+            self.PerformaceTableDAT = self.PerformaceTableDAT.round(2)
+            self.PerformaceTableDAT.columns = newLable
+            self.PerformaceTableDAT = self.PerformaceTableDAT.drop(self.PerformaceTableDAT.columns[0], axis=1) 
+
+            # Create Table for Tabwidget
+            self.PerformacePriceTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(),self.PerformaceTableDAT.iloc[:,:6])
+            self.PerformaceValueTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(), pd.concat([ self.PerformaceTableDAT['年度_年度'] ,self.PerformaceTableDAT.iloc[:,7:11]],axis=1 ))
+            self.PerformaceRevTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(), pd.concat([ self.PerformaceTableDAT['年度_年度'] ,self.PerformaceTableDAT.iloc[:,12:15]],axis=1 ))
+            self.PerformaceIdxTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(), pd.concat([ self.PerformaceTableDAT['年度_年度'] ,self.PerformaceTableDAT.iloc[:,16:]],axis=1 ))
+
+            self.tabWidgetPerformance.addTab(self.PerformacePriceTable.ret_widget(), "價格")
+            self.tabWidgetPerformance.addTab(self.PerformaceValueTable.ret_widget(), "獲利")
+            self.tabWidgetPerformance.addTab(self.PerformaceRevTable.ret_widget(), "收益")
+            self.tabWidgetPerformance.addTab(self.PerformaceIdxTable.ret_widget(), "指標")
+
+        if self.RevTableDAT.__class__.__name__ == 'DataFrame':
+            # rename the duplicated name of columns
+            newLable = []
+            MultiLevelcolumns = self.RevTableDAT.columns
+            for level1,level2,level3 in MultiLevelcolumns:
+                newLable.append(level1+'_'+level2+'_'+level3)
+            self.RevTableDAT = self.RevTableDAT.round(2)
+            self.RevTableDAT.columns = newLable
+
+            self.RevTableDAT = self.RevTableDAT.drop(self.RevTableDAT.columns[0], axis=1) 
+
+            # Create Table for Tabwidget
+            self.RevValueTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(),self.RevTableDAT.iloc[:,:7])
+            self.RevTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(), pd.concat([ self.RevTableDAT['月別_月別_月別'] ,self.RevTableDAT.iloc[:,8:12]],axis=1 ))
+            self.RevAllTable = PandaModel.TableWidget(self.frameGeometry().width(),self.frameGeometry().height(), pd.concat([ self.RevTableDAT['月別_月別_月別'] ,self.RevTableDAT.iloc[:,13:]],axis=1 ))
+
+            self.tabWidgetRev.addTab(self.RevValueTable.ret_widget(), "價格")
+            self.tabWidgetRev.addTab(self.RevTable.ret_widget(), "營業收入")
+            self.tabWidgetRev.addTab(self.RevAllTable.ret_widget(), "合併營業收入")
+
+
+            self.gridContainer.layout.addWidget(self.tabWidgetRev)
+            self.gridContainer.setLayout(self.gridContainer.layout)
+
+    def fitsize(self):
+        width = self.frameGeometry().width()
+        height = self.frameGeometry().height()
+        self.tableView.setFixedWidth(width-100)
+        print (width,height)
+        self.tableView.resizeColumnsToContents()
+        return
+        
+        # self.AvgEdit = QtWidgets.QLabel('5日線')
+        # self.AvgEdit.setObjectName("avg")
+        # self.gridContainer.layout.addWidget(self.AvgEdit, 0, 0, 1, 1)
+
+        # setLayout
